@@ -11,6 +11,7 @@ version = "0.1.0"
 
 [dependencies]
 libtock_adc = { path = "apis/adc"}
+libtock_key_value = { path = "apis/key_value"}
 libtock_air_quality = { path = "apis/air_quality" }
 libtock_alarm = { path = "apis/alarm" }
 libtock_ambient_light = { path = "apis/ambient_light" }
@@ -57,6 +58,7 @@ members = [
     "apis/proximity",
     "apis/temperature",
     "apis/ambient_light",
+    "apis/key_value",
     "panic_handlers/debug_panic",
     "panic_handlers/small_panic",
     "platform",
