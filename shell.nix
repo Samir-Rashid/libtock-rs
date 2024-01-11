@@ -34,33 +34,38 @@ let
   rust_overlay = import "${pkgs.fetchFromGitHub {
     owner = "nix-community";
     repo = "fenix";
-    # Fenix commit that corresponds with nightly version
-    # Revision needs to be the same date as the nightly version
+    # Revision hash must correspond with the same date as the nightly version.
     rev = "ffa0a8815be591767f82d42c63d88bfa4026a967"; 
     sha256 = "sha256-JOrXleSdEKuymCyxg7P4GTTATDhBdfeyWcd1qQQlIYw=";
   }}/overlay.nix";
 
   nixpkgs = import <nixpkgs> { overlays = [ rust_overlay ]; };
 
-  # Use nightly development toolchain by default because Miri is not supported
+  # Use nightly development toolchain because Miri is not supported
   # by the MSRV (Minimum Supported Rust Version) toolchain.
+  stable = (lib.importTOML ./rust-toolchain.toml).toolchain;
+  nightly = (lib.importTOML ./nightly/rust-toolchain.toml).toolchain;
   nightlyToolchain = nixpkgs.fenix.fromToolchainName {
-    name = (lib.importTOML ./nightly/rust-toolchain.toml).toolchain.channel;
+    name = nightly.channel;
     sha256 = "sha256-R/ONZzJaWQr0pl5RoXFIbnxIE3m6oJWy/rr2W0wXQHQ=";
   };
 
-  # Combine the components from the stable and nightly toolchains
+  # Combine the components from the stable and nightly toolchains.
   combinedToolchain =
     nightlyToolchain.withComponents
-      ((lib.importTOML ./nightly/rust-toolchain.toml).toolchain.components ++
-        (lib.importTOML ./rust-toolchain.toml).toolchain.components ++ [ "cargo" ]);
+      (
+        nightly.components ++
+        stable.components ++
+        [ "cargo" ]
+      );
+  # Add the cross-compile target platforms to the environment.
   rustBuild =
     nixpkgs.fenix.combine
       (
         foldl'
           (acc: item: acc ++ [ nixpkgs.fenix.targets.${item}.latest.rust-std ])
           [ combinedToolchain ]
-          ((lib.importTOML ./rust-toolchain.toml).toolchain.targets)
+          stable.targets
       );
 
 in
