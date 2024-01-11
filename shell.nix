@@ -43,34 +43,31 @@ let
   # Use nightly development toolchain by default because Miri is not supported
   # by the MSRV (Minimum Supported Rust Version) toolchain.
 
+  nightlyToolchain = nixpkgs.fenix.fromToolchainName {
+    name = (lib.importTOML ./nightly/rust-toolchain.toml).toolchain.channel;
+    sha256 = "sha256-R/ONZzJaWQr0pl5RoXFIbnxIE3m6oJWy/rr2W0wXQHQ=";
+  };
+  # combine the toolchain components
+  combinedToolchain =
+    nightlyToolchain.withComponents
+      ((lib.importTOML ./nightly/rust-toolchain.toml).toolchain.components ++
+        (lib.importTOML ./rust-toolchain.toml).toolchain.components ++ [ "cargo" ]);
   rustBuild =
     nixpkgs.fenix.combine
       (
         foldl'
           (acc: item: acc ++ [ nixpkgs.fenix.targets.${item}.latest.rust-std ])
-          [
-            ((nixpkgs.fenix.fromToolchainName {
-              name = (lib.importTOML ./nightly/rust-toolchain.toml).toolchain.channel;
-              sha256 = "sha256-R/ONZzJaWQr0pl5RoXFIbnxIE3m6oJWy/rr2W0wXQHQ=";
-            }).withComponents
-              ((lib.importTOML ./nightly/rust-toolchain.toml).toolchain.components ++
-                (lib.importTOML ./rust-toolchain.toml).toolchain.components)
-            )
-          ]
+          [ combinedToolchain ]
           ((lib.importTOML ./rust-toolchain.toml).toolchain.targets)
       );
 
-  # combine
-  #   (foldl' (++ function converts "thumbv6m-none-eabi" to ...)
-  #   (accumulator is a list with
-  #   one
-  #   element [ toolchain ]) (toml list of targets))
-
+  #rustBuildNightly = (
+  #  nixpkgs.fenix.fromToolchainFile { file = ./nightly/rust-toolchain.toml; }
+  #);
   # nixpkgs.fenix.toolchainOf {
   #   # file = ./nightly/rust-toolchain.toml; 
   #   channel = (lib.importTOML ./nightly/rust-toolchain.toml).toolchain.channel;
-  # }.withComponents;
-  # temp.withComponents = (lib.importTOML ./nightly/rust-toolchain.toml).toolchain.components;
+  # };
 
 in
 pkgs.mkShell
@@ -80,6 +77,7 @@ pkgs.mkShell
   buildInputs = with pkgs; [
     # --- Toolchains ---
     rustBuild
+    #rustBuildNightly
     openocd
 
     # --- Convenience and support packages ---
