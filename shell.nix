@@ -34,7 +34,9 @@ let
   rust_overlay = import "${pkgs.fetchFromGitHub {
     owner = "nix-community";
     repo = "fenix";
-    rev = "ffa0a8815be591767f82d42c63d88bfa4026a967"; # bruh
+    # Fenix commit that corresponds with nightly version
+    # Revision needs to be the same date as the nightly version
+    rev = "ffa0a8815be591767f82d42c63d88bfa4026a967"; 
     sha256 = "sha256-JOrXleSdEKuymCyxg7P4GTTATDhBdfeyWcd1qQQlIYw=";
   }}/overlay.nix";
 
@@ -42,12 +44,12 @@ let
 
   # Use nightly development toolchain by default because Miri is not supported
   # by the MSRV (Minimum Supported Rust Version) toolchain.
-
   nightlyToolchain = nixpkgs.fenix.fromToolchainName {
     name = (lib.importTOML ./nightly/rust-toolchain.toml).toolchain.channel;
     sha256 = "sha256-R/ONZzJaWQr0pl5RoXFIbnxIE3m6oJWy/rr2W0wXQHQ=";
   };
-  # combine the toolchain components
+
+  # Combine the components from the stable and nightly toolchains
   combinedToolchain =
     nightlyToolchain.withComponents
       ((lib.importTOML ./nightly/rust-toolchain.toml).toolchain.components ++
@@ -61,14 +63,6 @@ let
           ((lib.importTOML ./rust-toolchain.toml).toolchain.targets)
       );
 
-  #rustBuildNightly = (
-  #  nixpkgs.fenix.fromToolchainFile { file = ./nightly/rust-toolchain.toml; }
-  #);
-  # nixpkgs.fenix.toolchainOf {
-  #   # file = ./nightly/rust-toolchain.toml; 
-  #   channel = (lib.importTOML ./nightly/rust-toolchain.toml).toolchain.channel;
-  # };
-
 in
 pkgs.mkShell
 {
@@ -77,7 +71,6 @@ pkgs.mkShell
   buildInputs = with pkgs; [
     # --- Toolchains ---
     rustBuild
-    #rustBuildNightly
     openocd
 
     # --- Convenience and support packages ---
