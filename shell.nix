@@ -34,27 +34,38 @@ let
   rust_overlay = import "${pkgs.fetchFromGitHub {
     owner = "nix-community";
     repo = "fenix";
-    rev = "1a92c6d75963fd594116913c23041da48ed9e020";
-    sha256 = "sha256-L3vZfifHmog7sJvzXk8qiKISkpyltb+GaThqMJ7PU9Y=";
+    rev = "ffa0a8815be591767f82d42c63d88bfa4026a967"; # bruh
+    sha256 = "sha256-JOrXleSdEKuymCyxg7P4GTTATDhBdfeyWcd1qQQlIYw=";
   }}/overlay.nix";
 
   nixpkgs = import <nixpkgs> { overlays = [ rust_overlay ]; };
 
   # Use nightly development toolchain by default because Miri is not supported
   # by the MSRV (Minimum Supported Rust Version) toolchain.
+
   rustBuild =
-    foldl'
-      combine
-      ((nixpkgs.fenix.fromToolchainName {
-        name = (lib.importTOML ./nightly/rust-toolchain.toml).toolchain.channel;
-        sha256 = "sha256-R/ONZzJaWQr0pl5RoXFIbnxIE3m6oJWy/rr2W0wXQHQ=";
-      }).withComponents
-        ((lib.importTOML ./nightly/rust-toolchain.toml).toolchain.components ++
-          (lib.importTOML ./rust-toolchain.toml).toolchain.components))
+    nixpkgs.fenix.combine
       (
-        (lib.importTOML ./rust-toolchain.toml).toolchain.targets
-      )
-  ;
+        foldl'
+          (acc: item: acc ++ [ nixpkgs.fenix.targets.${item}.latest.rust-std ])
+          [
+            ((nixpkgs.fenix.fromToolchainName {
+              name = (lib.importTOML ./nightly/rust-toolchain.toml).toolchain.channel;
+              sha256 = "sha256-R/ONZzJaWQr0pl5RoXFIbnxIE3m6oJWy/rr2W0wXQHQ=";
+            }).withComponents
+              ((lib.importTOML ./nightly/rust-toolchain.toml).toolchain.components ++
+                (lib.importTOML ./rust-toolchain.toml).toolchain.components)
+            )
+          ]
+          ((lib.importTOML ./rust-toolchain.toml).toolchain.targets)
+      );
+
+  # combine
+  #   (foldl' (++ function converts "thumbv6m-none-eabi" to ...)
+  #   (accumulator is a list with
+  #   one
+  #   element [ toolchain ]) (toml list of targets))
+
   # nixpkgs.fenix.toolchainOf {
   #   # file = ./nightly/rust-toolchain.toml; 
   #   channel = (lib.importTOML ./nightly/rust-toolchain.toml).toolchain.channel;
@@ -62,7 +73,8 @@ let
   # temp.withComponents = (lib.importTOML ./nightly/rust-toolchain.toml).toolchain.components;
 
 in
-pkgs.mkShell {
+pkgs.mkShell
+{
   name = "tock-dev";
 
   buildInputs = with pkgs; [
