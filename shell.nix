@@ -40,11 +40,11 @@ let
   }}/overlay.nix";
 
   nixpkgs = import <nixpkgs> { overlays = [ rust_overlay ]; };
+  stable = (lib.importTOML ./rust-toolchain.toml).toolchain;
+  nightly = (lib.importTOML ./nightly/rust-toolchain.toml).toolchain;
 
   # Use nightly development toolchain because Miri is not supported
   # by the MSRV (Minimum Supported Rust Version) toolchain.
-  stable = (lib.importTOML ./rust-toolchain.toml).toolchain;
-  nightly = (lib.importTOML ./nightly/rust-toolchain.toml).toolchain;
   nightlyToolchain = nixpkgs.fenix.fromToolchainName {
     name = nightly.channel;
     sha256 = "sha256-R/ONZzJaWQr0pl5RoXFIbnxIE3m6oJWy/rr2W0wXQHQ=";
